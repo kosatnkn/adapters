@@ -11,18 +11,18 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/kosatnkn/adapters/db"
-	"github.com/kosatnkn/catalyst/domain/globals"
+	dbContext "github.com/kosatnkn/adapters/db/context"
 )
 
 // Adapter is used to communicate with a MySQL/MariaDB databases.
 type Adapter struct {
-	cfg      db.Config
+	cfg      Config
 	pool     *sql.DB
 	pqPrefix string
 }
 
 // NewAdapter creates a new MySQL adapter instance.
-func NewAdapter(cfg db.Config) (db.AdapterInterface, error) {
+func NewAdapter(cfg Config) (db.AdapterInterface, error) {
 
 	connString := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
@@ -149,7 +149,7 @@ func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams [
 // If so use that transaction to prepare statement else use the pool.
 func (a *Adapter) prepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
 
-	tx := ctx.Value(globals.TxKey)
+	tx := ctx.Value(dbContext.TxKey)
 	if tx != nil {
 		return tx.(*sql.Tx).Prepare(query)
 	}

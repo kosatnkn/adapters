@@ -11,18 +11,18 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/kosatnkn/adapters/db"
-	"github.com/kosatnkn/catalyst/domain/globals"
+	dbContext "github.com/kosatnkn/adapters/db/context"
 )
 
 // Adapter is used to communicate with a Postgres database.
 type Adapter struct {
-	cfg      db.Config
+	cfg      Config
 	pool     *sql.DB
 	pqPrefix string
 }
 
 // NewAdapter creates a new Postgres adapter instance.
-func NewAdapter(cfg db.Config) (db.AdapterInterface, error) {
+func NewAdapter(cfg Config) (db.AdapterInterface, error) {
 
 	connString := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=disable",
 		cfg.User, cfg.Password, cfg.Database, cfg.Host, cfg.Port)
@@ -156,7 +156,7 @@ func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams [
 // If so use that transaction to prepare statement else use the pool.
 func (a *Adapter) prepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
 
-	tx := ctx.Value(globals.TxKey)
+	tx := ctx.Value(dbContext.TxKey)
 	if tx != nil {
 		return tx.(*sql.Tx).Prepare(query)
 	}
