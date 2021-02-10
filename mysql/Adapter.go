@@ -10,8 +10,8 @@ import (
 	// database driver for mysql
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/kosatnkn/adapters/db"
-	dbContext "github.com/kosatnkn/adapters/db/context"
+	"github.com/kosatnkn/db"
+	dbContext "github.com/kosatnkn/db/context"
 )
 
 // Adapter is used to communicate with a MySQL/MariaDB databases.

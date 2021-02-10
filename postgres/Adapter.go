@@ -10,8 +10,8 @@ import (
 	// database driver for postgres
 	_ "github.com/lib/pq"
 
-	"github.com/kosatnkn/adapters/db"
-	dbContext "github.com/kosatnkn/adapters/db/context"
+	"github.com/kosatnkn/db"
+	dbContext "github.com/kosatnkn/db/context"
 )
 
 // Adapter is used to communicate with a Postgres database.

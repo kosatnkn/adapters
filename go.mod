@@ -1,4 +1,4 @@
-module github.com/kosatnkn/adapters
+module github.com/kosatnkn/db
 
 go 1.15
 

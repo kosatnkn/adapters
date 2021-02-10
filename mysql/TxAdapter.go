@@ -1,11 +1,11 @@
-package postgres
+package mysql
 
 import (
 	"context"
 	"database/sql"
 
-	"github.com/kosatnkn/adapters/db"
-	dbContext "github.com/kosatnkn/adapters/db/context"
+	"github.com/kosatnkn/db"
+	dbContext "github.com/kosatnkn/db/context"
 )
 
 // TxAdapter is used to handle postgres db transactions.

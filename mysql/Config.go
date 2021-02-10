@@ -1,6 +1,6 @@
-package postgres
+package mysql
 
-import "github.com/kosatnkn/adapters/db/internal"
+import "github.com/kosatnkn/db/internal"
 
 // Config contains database configurations for mysql.
 type Config struct {
