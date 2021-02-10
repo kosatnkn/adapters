@@ -16,13 +16,13 @@ import (
 
 // Adapter is used to communicate with a MySQL/MariaDB databases.
 type Adapter struct {
-	cfg      Config
+	cfg      db.Config
 	pool     *sql.DB
 	pqPrefix string
 }
 
 // NewAdapter creates a new MySQL adapter instance.
-func NewAdapter(cfg Config) (db.AdapterInterface, error) {
+func NewAdapter(cfg db.Config) (db.AdapterInterface, error) {
 
 	connString := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Database)

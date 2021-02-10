@@ -1,4 +1,4 @@
-package internal
+package db
 
 // Config contains common database configurations for all database connections.
 type Config struct {

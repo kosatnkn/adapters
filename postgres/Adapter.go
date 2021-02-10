@@ -16,13 +16,13 @@ import (
 
 // Adapter is used to communicate with a Postgres database.
 type Adapter struct {
-	cfg      Config
+	cfg      db.Config
 	pool     *sql.DB
 	pqPrefix string
 }
 
 // NewAdapter creates a new Postgres adapter instance.
-func NewAdapter(cfg Config) (db.AdapterInterface, error) {
+func NewAdapter(cfg db.Config) (db.AdapterInterface, error) {
 
 	connString := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=disable",
 		cfg.User, cfg.Password, cfg.Database, cfg.Host, cfg.Port)
