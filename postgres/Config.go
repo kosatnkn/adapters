@@ -1,4 +1,4 @@
-package db
+package postgres
 
 // Config contains common database configurations for all database connections.
 type Config struct {

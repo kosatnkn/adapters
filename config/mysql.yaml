@@ -1,0 +1,9 @@
+## MySQL
+host: 127.0.0.1
+port: 3306
+database: sample
+user: root
+password: root
+pool_size: 10
+# check whether db is accessible
+check: false
