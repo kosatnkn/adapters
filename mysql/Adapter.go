@@ -11,7 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/kosatnkn/db"
-	dbContext "github.com/kosatnkn/db/context"
+	"github.com/kosatnkn/db/internal"
 )
 
 // Adapter is used to communicate with a MySQL/MariaDB databases.
@@ -149,7 +149,7 @@ func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams [
 // If so use that transaction to prepare statement else use the pool.
 func (a *Adapter) prepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
 
-	tx := ctx.Value(dbContext.TxKey)
+	tx := ctx.Value(internal.TxKey)
 	if tx != nil {
 		return tx.(*sql.Tx).Prepare(query)
 	}

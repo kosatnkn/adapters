@@ -5,7 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/kosatnkn/db"
-	dbContext "github.com/kosatnkn/db/context"
+	"github.com/kosatnkn/db/internal"
 )
 
 // TxAdapter is used to handle postgres db transactions.
@@ -31,7 +31,7 @@ func (a *TxAdapter) Wrap(ctx context.Context, fn func(ctx context.Context) (inte
 	}
 
 	// get a reference to the attached transaction
-	tx := ctx.Value(dbContext.TxKey).(*sql.Tx)
+	tx := ctx.Value(internal.TxKey).(*sql.Tx)
 
 	res, err := fn(ctx)
 	if err != nil {
@@ -57,7 +57,7 @@ func (a *TxAdapter) Wrap(ctx context.Context, fn func(ctx context.Context) (inte
 func (a *TxAdapter) attachTx(ctx context.Context) (context.Context, error) {
 
 	// check tx altready exists
-	tx := ctx.Value(dbContext.TxKey)
+	tx := ctx.Value(internal.TxKey)
 	if tx != nil {
 		return ctx, nil
 	}
@@ -68,5 +68,5 @@ func (a *TxAdapter) attachTx(ctx context.Context) (context.Context, error) {
 		return nil, err
 	}
 
-	return context.WithValue(ctx, dbContext.TxKey, tx), nil
+	return context.WithValue(ctx, internal.TxKey, tx), nil
 }
