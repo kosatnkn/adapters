@@ -21,6 +21,8 @@ func NewTxAdapter(dba db.AdapterInterface) db.TxAdapterInterface {
 	}
 }
 
+// TODO: add commit counter to context to enable nested transactions
+
 // Wrap runs the content of the function in a single transaction.
 func (a *TxAdapter) Wrap(ctx context.Context, fn func(ctx context.Context) (interface{}, error)) (interface{}, error) {
 
