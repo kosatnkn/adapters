@@ -21,8 +21,6 @@ func NewTxAdapter(dba db.AdapterInterface) db.TxAdapterInterface {
 	}
 }
 
-// TODO: add commit counter to context to enable nested transactions
-
 // Wrap runs the content of the function in a single transaction.
 func (a *TxAdapter) Wrap(ctx context.Context, fn func(ctx context.Context) (interface{}, error)) (interface{}, error) {
 
@@ -35,16 +33,25 @@ func (a *TxAdapter) Wrap(ctx context.Context, fn func(ctx context.Context) (inte
 	// get a reference to the attached transaction
 	tx := ctx.Value(internal.TxKey).(*sql.Tx)
 
+	// run function
 	res, err := fn(ctx)
+
+	// decide whether to commit or rollback
+	// NOTE: Here we deliberately avoid catching errors from Commit() and Rollback().
+	//		 This is because the sql package does not give a method to check whether
+	//		 a transaction has already completed or not.
+	//		 When executing nested operations in a single transaction, either the leaf operation or the
+	//		 earliest failing operation of the operation tree will close the transaction.
+	//		 Since all operations prior to that operation also tries to close the transaction
+	//		 it will always result in an error.
+	//		 If we catch errors from Commit() and Rollback(), nested transactions
+	// 		 will always fail because of this.
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
+	tx.Commit()
 
 	return res, nil
 }

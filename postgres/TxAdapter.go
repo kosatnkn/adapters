@@ -39,10 +39,7 @@ func (a *TxAdapter) Wrap(ctx context.Context, fn func(ctx context.Context) (inte
 		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return nil, err
-	}
+	tx.Commit()
 
 	return res, nil
 }

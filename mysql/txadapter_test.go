@@ -377,17 +377,171 @@ func TestNestedTxSuccess(t *testing.T) {
 		t.Errorf("Need %d, got %d", need, got)
 	}
 
-	// // check whether all data is inserted
-	// r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
-	// result, ok = r.([]map[string]interface{})
-	// if !ok {
-	// 	t.Fatal("Result type mismatch")
-	// }
+	// check whether all data is inserted
+	r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	result, ok = r.([]map[string]interface{})
+	if !ok {
+		t.Fatal("Result type mismatch")
+	}
 
-	// need = 2
-	// got = int(result[0]["count"].(int64))
+	need = 2
+	got = int(result[0]["count"].(int64))
 
-	// if got != need {
-	// 	t.Errorf("Need %d, got %d", need, got)
-	// }
+	if got != need {
+		t.Errorf("Need %d, got %d", need, got)
+	}
+}
+
+// TestNestedTxInnerFail tests for the failure of inner operation of the nested transactions.
+func TestNestedTxInnerFail(t *testing.T) {
+
+	clearTestTable(t)
+
+	adapter := newDBAdapter(t)
+	defer adapter.Destruct()
+
+	tx := newTxAdapter(adapter)
+
+	ctx := context.Background()
+
+	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
+	q2 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
+
+	// run q1
+	r, err := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+
+		r1, err1 := adapter.Query(ctx, q1, nil)
+		if err1 != nil {
+			return nil, err1
+		}
+
+		// run q2
+		_, err2 := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+
+			r2, err2 := adapter.Query(ctx, q2, nil)
+			if err2 != nil {
+				return nil, err2
+			}
+
+			return r2, err2
+		})
+		if err2 == nil {
+			t.Errorf("Need error, got nil")
+		}
+
+		errNeed := `Error 1064`
+		errGot := err2.Error()[:10]
+		if errNeed != errGot {
+			t.Errorf("Need %s, got %s", errNeed, errGot)
+		}
+
+		// HERE: return results of q1
+		return r1, err1
+	})
+	if err != nil {
+		t.Errorf("Error running query 1: %s", err.Error())
+	}
+
+	result, ok := r.([]map[string]interface{})
+	if !ok {
+		t.Fatal("Result type mismatch")
+	}
+
+	need := 1
+	got := int(result[0]["last_insert_id"].(int64))
+
+	if got != need {
+		t.Errorf("Need %d, got %d", need, got)
+	}
+
+	// check whether all data is inserted
+	r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	result, ok = r.([]map[string]interface{})
+	if !ok {
+		t.Fatal("Result type mismatch")
+	}
+
+	need = 0
+	got = int(result[0]["count"].(int64))
+
+	if got != need {
+		t.Errorf("Need %d, got %d", need, got)
+	}
+}
+
+// TestNestedTxOuterFail tests for the failure of outer operation of the nested transactions.
+func TestNestedTxOuterFail(t *testing.T) {
+
+	clearTestTable(t)
+
+	adapter := newDBAdapter(t)
+	defer adapter.Destruct()
+
+	tx := newTxAdapter(adapter)
+
+	ctx := context.Background()
+
+	q1 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
+	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
+
+	// run q1
+	r, err := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+
+		r1, err1 := adapter.Query(ctx, q1, nil)
+		if err1 != nil {
+			return nil, err1
+		}
+
+		// run q2
+		r2, err2 := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+
+			r2, err2 := adapter.Query(ctx, q2, nil)
+			if err2 != nil {
+				return nil, err2
+			}
+
+			return r2, err2
+		})
+		if err2 != nil {
+			t.Error("Error running query 2")
+		}
+
+		result2, ok2 := r2.([]map[string]interface{})
+		if !ok2 {
+			t.Fatal("Result type mismatch")
+		}
+
+		need2 := 2
+		got2 := int(result2[0]["last_insert_id"].(int64))
+
+		if got2 != need2 {
+			t.Errorf("Need %d, got %d", need2, got2)
+		}
+
+		// HERE: return results of q1
+		return r1, err1
+	})
+	if err == nil {
+		t.Errorf("Need error, got nil")
+	}
+
+	errNeed := `Error 1064`
+	errGot := err.Error()[:10]
+	if errNeed != errGot {
+		t.Errorf("Need %s, got %s", errNeed, errGot)
+	}
+
+	// check whether all data is inserted
+	r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	result, ok := r.([]map[string]interface{})
+	if !ok {
+		t.Fatal("Result type mismatch")
+	}
+
+	need := 0
+	got := int(result[0]["count"].(int64))
+
+	if got != need {
+		t.Errorf("Need %d, got %d", need, got)
+	}
 }
