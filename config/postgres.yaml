@@ -1,0 +1,9 @@
+## Postgres
+host: localhost
+port: 5432
+database: test
+user: postgres
+password: admin
+pool_size: 10
+# check whether db is accessible
+check: false
