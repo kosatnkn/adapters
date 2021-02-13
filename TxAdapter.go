@@ -1,20 +1,19 @@
-package mysql
+package db
 
 import (
 	"context"
 	"database/sql"
 
-	"github.com/kosatnkn/db"
 	"github.com/kosatnkn/db/internal"
 )
 
 // TxAdapter is used to handle postgres db transactions.
 type TxAdapter struct {
-	dba db.AdapterInterface
+	dba AdapterInterface
 }
 
 // NewTxAdapter creates a new Postgres transaction adapter instance.
-func NewTxAdapter(dba db.AdapterInterface) db.TxAdapterInterface {
+func NewTxAdapter(dba AdapterInterface) TxAdapterInterface {
 
 	return &TxAdapter{
 		dba: dba,

@@ -1,4 +1,4 @@
-package mysql_test
+package db_test
 
 import (
 	"context"
@@ -41,7 +41,7 @@ func newDBAdapter(t *testing.T) db.AdapterInterface {
 // newTxAdapter creates a new transaction adapter.
 func newTxAdapter(a db.AdapterInterface) db.TxAdapterInterface {
 
-	return mysql.NewTxAdapter(a)
+	return db.NewTxAdapter(a)
 }
 
 // clearTestTable clears all data from the test table.
