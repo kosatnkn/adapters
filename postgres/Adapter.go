@@ -71,6 +71,7 @@ func (a *Adapter) Query(ctx context.Context, query string, parameters map[string
 	if err != nil {
 		return nil, err
 	}
+	defer statement.Close()
 
 	// check whether the query is a select statement
 	if strings.ToLower(convertedQuery[:1]) == "s" {
