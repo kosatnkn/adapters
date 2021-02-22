@@ -14,7 +14,7 @@ import (
 	"github.com/kosatnkn/db/internal"
 )
 
-// Adapter is used to communicate with a MySQL/MariaDB databases.
+// Adapter is used to communicate with a MySQL/MariaDB database.
 type Adapter struct {
 	cfg      Config
 	pool     *sql.DB
