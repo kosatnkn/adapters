@@ -14,9 +14,10 @@ type AdapterInterface interface {
 	// Query runs a query and return the result.
 	Query(ctx context.Context, query string, params map[string]interface{}) ([]map[string]interface{}, error)
 
-	// QueryBulk runs a query using an array of parameters.
+	// QueryBulk runs a query using an array of parameters and return the combined result.
 	//
-	// This query is intended to do bulk inserts, updates and deletes. Using this for selects will result in an error.
+	// NOTE: This query is intended to do bulk INSERTS, UPDATES and DELETES.
+	//       Using this for SELECTS will result in an error.
 	QueryBulk(ctx context.Context, query string, params []map[string]interface{}) ([]map[string]interface{}, error)
 
 	// NewTransaction creates a new database transaction.
