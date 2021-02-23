@@ -1,3 +1,6 @@
+// +build integration
+// +build mysql
+
 package db_test
 
 import (
