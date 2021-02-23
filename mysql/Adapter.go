@@ -14,7 +14,7 @@ import (
 	"github.com/kosatnkn/db/internal"
 )
 
-// Adapter is used to communicate with a MySQL/MariaDB databases.
+// Adapter is used to communicate with a MySQL/MariaDB database.
 type Adapter struct {
 	cfg      Config
 	pool     *sql.DB
@@ -58,25 +58,25 @@ func (a *Adapter) Ping() error {
 }
 
 // Query runs a query and returns the result.
-func (a *Adapter) Query(ctx context.Context, query string, parameters map[string]interface{}) ([]map[string]interface{}, error) {
+func (a *Adapter) Query(ctx context.Context, query string, params map[string]interface{}) ([]map[string]interface{}, error) {
 
 	convertedQuery, placeholders := a.convertQuery(query)
 
-	reorderedParameters, err := a.reorderParameters(parameters, placeholders)
+	reorderedParams, err := a.reorderParameters(params, placeholders)
 	if err != nil {
 		return nil, err
 	}
 
-	statement, err := a.prepareStatement(ctx, convertedQuery)
+	stmt, err := a.prepareStatement(ctx, convertedQuery)
 	if err != nil {
 		return nil, err
 	}
-	defer statement.Close()
+	defer stmt.Close()
 
 	// check whether the query is a select statement
 	if strings.ToLower(convertedQuery[:1]) == "s" {
 
-		rows, err := statement.Query(reorderedParameters...)
+		rows, err := stmt.Query(reorderedParams...)
 		if err != nil {
 			return nil, err
 		}
@@ -84,12 +84,54 @@ func (a *Adapter) Query(ctx context.Context, query string, parameters map[string
 		return a.prepareDataSet(rows)
 	}
 
-	result, err := statement.Exec(reorderedParameters...)
+	result, err := stmt.Exec(reorderedParams...)
 	if err != nil {
 		return nil, err
 	}
 
 	return a.prepareResultSet(result)
+}
+
+// QueryBulk runs a query using an array of parameters and return the combined result.
+//
+// NOTE: This query is intended to do bulk INSERTS, UPDATES and DELETES.
+//       Using this for SELECTS will result in an error.
+func (a *Adapter) QueryBulk(ctx context.Context, query string, params []map[string]interface{}) ([]map[string]interface{}, error) {
+
+	convertedQuery, placeholders := a.convertQuery(query)
+
+	// check whether the query is a select statement
+	if strings.ToLower(convertedQuery[:6]) == "select" {
+		return nil, fmt.Errorf("Select queries are not allowed. Use Query() instead")
+	}
+
+	stmt, err := a.prepareStatement(ctx, convertedQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	var lastID int64
+	var affRows int64
+
+	for _, pms := range params {
+
+		reorderedParams, err := a.reorderParameters(pms, placeholders)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err := stmt.Exec(reorderedParams...)
+		if err != nil {
+			return nil, err
+		}
+
+		lastID, _ = result.LastInsertId()
+		ar, _ := result.RowsAffected()
+		affRows += ar
+	}
+
+	return a.formatResultSet(lastID, affRows), nil
 }
 
 // NewTransaction creates a new database transaction.
@@ -99,12 +141,12 @@ func (a *Adapter) NewTransaction() (*sql.Tx, error) {
 }
 
 // Destruct will close the MySQL adapter releasing all resources.
-func (a *Adapter) Destruct() {
+func (a *Adapter) Destruct() error {
 
-	a.pool.Close()
+	return a.pool.Close()
 }
 
-// Convert the named parameter query to a placeholder query that MySQL library understands.
+// convertQuery converts the named parameter query to a placeholder query that MySQL library understands.
 //
 // This will return the query and a slice of strings containing named parameter name in the order that they are found
 // in the query.
@@ -124,7 +166,7 @@ func (a *Adapter) convertQuery(query string) (string, []string) {
 	return query, namedParams
 }
 
-// Reorder the parameters map in the order of named parameters slice.
+// reorderParameters reorders the parameters map in the order of named parameters slice.
 func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams []string) ([]interface{}, error) {
 
 	var reorderedParams []interface{}
@@ -158,7 +200,7 @@ func (a *Adapter) prepareStatement(ctx context.Context, query string) (*sql.Stmt
 	return a.pool.Prepare(query)
 }
 
-// Prepare the return dataset for select statements.
+// prepareDataSet creates a dataset using the output of a SELECT statement.
 //
 // Source: https://kylewbanks.com/blog/query-result-to-map-in-golang
 func (a *Adapter) prepareDataSet(rows *sql.Rows) ([]map[string]interface{}, error) {
@@ -199,15 +241,30 @@ func (a *Adapter) prepareDataSet(rows *sql.Rows) ([]map[string]interface{}, erro
 	return data, nil
 }
 
-// Prepare the resultset for all other queries.
+// prepareResultSet creates a resultset using the result of Exec()
 func (a *Adapter) prepareResultSet(result sql.Result) ([]map[string]interface{}, error) {
 
-	var data []map[string]interface{}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
 
+	aff, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	return a.formatResultSet(id, aff), nil
+}
+
+// formatResultSet creates a resultset using last insert id and affected rows.
+func (a *Adapter) formatResultSet(id, aff int64) []map[string]interface{} {
+
+	data := make([]map[string]interface{}, 0)
 	row := make(map[string]interface{})
 
-	row["affected_rows"], _ = result.RowsAffected()
-	row["last_insert_id"], _ = result.LastInsertId()
+	row["affected_rows"] = aff
+	row["last_insert_id"] = id
 
-	return append(data, row), nil
+	return append(data, row)
 }
