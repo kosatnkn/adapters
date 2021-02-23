@@ -1,9 +1,8 @@
-// +build integration
-// +build mysql
-
 package mysql_test
 
 import (
+	"context"
+	"reflect"
 	"testing"
 
 	"github.com/kosatnkn/db"
@@ -38,4 +37,44 @@ func newDBAdapter(t *testing.T) db.AdapterInterface {
 	}
 
 	return a
+}
+
+// TestSelect tests select query.
+func TestSelect(t *testing.T) {
+
+	db := newDBAdapter(t)
+
+	q := "select * from sample"
+
+	r, err := db.Query(context.Background(), q, nil)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+
+	need := reflect.TypeOf(make([]map[string]interface{}, 0))
+	got := reflect.TypeOf(r)
+
+	if got != need {
+		t.Errorf("Need %d, got %d", need, got)
+	}
+}
+
+// TestSelectBulk tests select query sent to QueryBulk()
+func TestSelectBulk(t *testing.T) {
+
+	db := newDBAdapter(t)
+
+	q := "select * from sample"
+
+	_, err := db.QueryBulk(context.Background(), q, nil)
+	if err == nil {
+		t.Errorf("Need error, got nil")
+	}
+
+	need := "Select queries are not allowed. Use Query() instead"
+	got := err.Error()
+
+	if got != need {
+		t.Errorf("Need %s, got %s", need, got)
+	}
 }
