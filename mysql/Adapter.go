@@ -148,6 +148,13 @@ func (a *Adapter) Destruct() error {
 
 // convertQuery converts the named parameter query to a placeholder query that MySQL library understands.
 //
+// MySQL placeholder formats look like this.
+//
+// SELECT * FROM tbl WHERE col = ?
+// INSERT INTO tbl(col1, col2, col3) VALUES (?, ?, ?)
+// UPDATE tbl SET col1 = ?, col2 = ? WHERE col3 = ?
+// DELETE FROM tbl WHERE col = ?
+//
 // This will return the query and a slice of strings containing named parameter name in the order that they are found
 // in the query.
 func (a *Adapter) convertQuery(query string) (string, []string) {

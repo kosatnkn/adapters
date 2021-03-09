@@ -146,7 +146,14 @@ func (a *Adapter) Destruct() error {
 	return a.pool.Close()
 }
 
-// convertQuery converts the named parameter query to a placeholder query that MySQL library understands.
+// convertQuery converts the named parameter query to a placeholder query that Postgres library understands.
+//
+// Postgres placeholder formats look like this.
+//
+// SELECT * FROM tbl WHERE col = $1
+// INSERT INTO tbl(col1, col2, col3) VALUES ($1, $2, $3)
+// UPDATE tbl SET col1 = $1, col2 = $2 WHERE col3 = $3
+// DELETE FROM tbl WHERE col = $1
 //
 // This will return the query and a slice of strings containing named parameter name in the order that they are found
 // in the query.
