@@ -1,59 +1,9 @@
-package db_test
+package mysql_test
 
 import (
 	"context"
 	"testing"
-
-	"github.com/kosatnkn/db"
-	"github.com/kosatnkn/db/mysql"
 )
-
-// NOTE: you will have to create a db named sample and add the following table to it
-//
-// | sample 					|
-// | -------------------------- |
-// | id (int, autoincrement)	|
-// | name (varchar)				|
-// | password (varchar) 		|
-//
-
-// newDBAdapter creates a new db adapter pointing to the test db.
-func newDBAdapter(t *testing.T) db.AdapterInterface {
-
-	cfg := mysql.Config{
-		Host:     "127.0.0.1",
-		Port:     3306,
-		Database: "sample",
-		User:     "root",
-		Password: "root",
-		PoolSize: 10,
-		Check:    true,
-	}
-
-	a, err := mysql.NewAdapter(cfg)
-	if err != nil {
-		t.Fatalf("Cannot create adapter. Error: %v", err)
-	}
-
-	return a
-}
-
-// newTxAdapter creates a new transaction adapter.
-func newTxAdapter(a db.AdapterInterface) db.TxAdapterInterface {
-
-	return db.NewTxAdapter(a)
-}
-
-// clearTestTable clears all data from the test table.
-func clearTestTable(t *testing.T) {
-
-	adapter := newDBAdapter(t)
-	defer adapter.Destruct()
-
-	adapter.Query(context.Background(), `truncate sample`, nil)
-
-	t.Log("Table truncated")
-}
 
 // TestSingleTxSuccess tests for successfull operation of executing multiple queries
 // using the same transaction.
@@ -64,13 +14,11 @@ func TestSingleTxSuccess(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	tx := newTxAdapter(adapter)
-
 	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
 	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
 	q3 := `insert into sample(name, password) values ('Success Data 3', 'pwd3')`
 
-	r, err := tx.Wrap(context.Background(), func(ctx context.Context) (interface{}, error) {
+	r, err := adapter.WrapInTx(context.Background(), func(ctx context.Context) (interface{}, error) {
 
 		r, err := adapter.Query(ctx, q1, nil)
 		if err != nil {
@@ -115,13 +63,11 @@ func TestSingleTxFail(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	tx := newTxAdapter(adapter)
-
 	q1 := `insert into sample(name, password) values ('Success Query 1', 'pwd1')`
 	q2 := `insert into non_existant_table(name, password) values ('Data to non existant table', 'pwd')`
 	q3 := `insert into sample(name, password) values ('Success Query 3', 'pwd3')`
 
-	_, err := tx.Wrap(context.Background(), func(ctx context.Context) (interface{}, error) {
+	_, err := adapter.WrapInTx(context.Background(), func(ctx context.Context) (interface{}, error) {
 
 		r, err := adapter.Query(ctx, q1, nil)
 		if err != nil {
@@ -159,15 +105,13 @@ func TestMultipleTxSuccess(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	tx := newTxAdapter(adapter)
-
 	ctx := context.Background()
 
 	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
 	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
 
 	// run q1
-	r, err := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r, err := adapter.Query(ctx, q1, nil)
 		if err != nil {
@@ -193,7 +137,7 @@ func TestMultipleTxSuccess(t *testing.T) {
 	}
 
 	// run q2
-	r, err = tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+	r, err = adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r, err = adapter.Query(ctx, q2, nil)
 		if err != nil {
@@ -241,15 +185,13 @@ func TestMultipleTxFail(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	tx := newTxAdapter(adapter)
-
 	ctx := context.Background()
 
 	q1 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
 	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
 
 	// run q1 (failing query)
-	r, err := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r, err := adapter.Query(ctx, q1, nil)
 		if err != nil {
@@ -269,7 +211,7 @@ func TestMultipleTxFail(t *testing.T) {
 	}
 
 	// run q2
-	r, err = tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+	r, err = adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r, err = adapter.Query(ctx, q2, nil)
 		if err != nil {
@@ -317,15 +259,13 @@ func TestNestedTxSuccess(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	tx := newTxAdapter(adapter)
-
 	ctx := context.Background()
 
 	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
 	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
 
 	// run q1
-	r, err := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r1, err1 := adapter.Query(ctx, q1, nil)
 		if err1 != nil {
@@ -333,7 +273,7 @@ func TestNestedTxSuccess(t *testing.T) {
 		}
 
 		// run q2
-		r2, err2 := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+		r2, err2 := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 			r2, err2 := adapter.Query(ctx, q2, nil)
 			if err2 != nil {
@@ -400,15 +340,13 @@ func TestNestedTxInnerFail(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	tx := newTxAdapter(adapter)
-
 	ctx := context.Background()
 
 	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
 	q2 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
 
 	// run q1
-	r, err := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r1, err1 := adapter.Query(ctx, q1, nil)
 		if err1 != nil {
@@ -416,7 +354,7 @@ func TestNestedTxInnerFail(t *testing.T) {
 		}
 
 		// run q2
-		_, err2 := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+		_, err2 := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 			r2, err2 := adapter.Query(ctx, q2, nil)
 			if err2 != nil {
@@ -477,15 +415,13 @@ func TestNestedTxOuterFail(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	tx := newTxAdapter(adapter)
-
 	ctx := context.Background()
 
 	q1 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
 	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
 
 	// run q1
-	r, err := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r1, err1 := adapter.Query(ctx, q1, nil)
 		if err1 != nil {
@@ -493,7 +429,7 @@ func TestNestedTxOuterFail(t *testing.T) {
 		}
 
 		// run q2
-		r2, err2 := tx.Wrap(ctx, func(ctx context.Context) (interface{}, error) {
+		r2, err2 := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 			r2, err2 := adapter.Query(ctx, q2, nil)
 			if err2 != nil {

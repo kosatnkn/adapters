@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 // AdapterInterface is implemented by all database adapters.
@@ -20,8 +19,8 @@ type AdapterInterface interface {
 	//       Using this for SELECTS will result in an error.
 	QueryBulk(ctx context.Context, query string, params []map[string]interface{}) ([]map[string]interface{}, error)
 
-	// NewTransaction creates a new database transaction.
-	NewTransaction() (*sql.Tx, error)
+	// WrapInTx runs the content of the function in a single transaction.
+	WrapInTx(ctx context.Context, fn func(ctx context.Context) (interface{}, error)) (interface{}, error)
 
 	// Destruct will close the database adapter releasing all resources.
 	Destruct() error
