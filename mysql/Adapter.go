@@ -94,8 +94,8 @@ func (a *Adapter) Query(ctx context.Context, query string, params map[string]int
 
 // QueryBulk runs a query using an array of parameters and return the combined result.
 //
-// NOTE: This query is intended to do bulk INSERTS, UPDATES and DELETES.
-//       Using this for SELECTS will result in an error.
+// This query is intended to do bulk INSERTS, UPDATES and DELETES.
+// Using this for SELECTS will result in an error.
 func (a *Adapter) QueryBulk(ctx context.Context, query string, params []map[string]interface{}) ([]map[string]interface{}, error) {
 
 	convertedQuery, placeholders := a.convertQuery(query)
@@ -150,7 +150,7 @@ func (a *Adapter) WrapInTx(ctx context.Context, fn func(ctx context.Context) (in
 	res, err := fn(ctx)
 
 	// decide whether to commit or rollback
-	// NOTE:
+	//
 	// Here we deliberately avoid catching errors from Commit() and Rollback().
 	// This is because the sql package does not give a method to check whether
 	// a transaction has already completed or not.

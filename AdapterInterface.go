@@ -15,8 +15,8 @@ type AdapterInterface interface {
 
 	// QueryBulk runs a query using an array of parameters and return the combined result.
 	//
-	// NOTE: This query is intended to do bulk INSERTS, UPDATES and DELETES.
-	//       Using this for SELECTS will result in an error.
+	// This query is intended to do bulk INSERTS, UPDATES and DELETES.
+	// Using this for SELECTS will result in an error.
 	QueryBulk(ctx context.Context, query string, params []map[string]interface{}) ([]map[string]interface{}, error)
 
 	// WrapInTx runs the content of the function in a single transaction.
