@@ -102,7 +102,7 @@ func (a *Adapter) QueryBulk(ctx context.Context, query string, params []map[stri
 
 	// check whether the query is a select statement
 	if strings.ToLower(convertedQuery[:6]) == "select" {
-		return nil, fmt.Errorf("Select queries are not allowed. Use Query() instead")
+		return nil, fmt.Errorf("postgres-adapter: select queries are not allowed. use Query() instead")
 	}
 
 	stmt, err := a.prepareStatement(ctx, convertedQuery)
@@ -245,7 +245,7 @@ func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams [
 		paramValue, isParamExist := params[param]
 
 		if !isParamExist {
-			return nil, fmt.Errorf("parameter '%s' is missing", param)
+			return nil, fmt.Errorf("postgres-adapter: parameter '%s' is missing", param)
 		}
 
 		reorderedParams = append(reorderedParams, paramValue)
