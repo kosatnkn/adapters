@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/kosatnkn/db"
+	"github.com/kosatnkn/db/internal"
 	"github.com/kosatnkn/db/mysql"
 )
 
@@ -96,13 +97,13 @@ func TestInsert(t *testing.T) {
 	}
 
 	need := 1
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 1
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
@@ -110,7 +111,7 @@ func TestInsert(t *testing.T) {
 	// check whether all data is inserted
 	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
 	if len(cr) == 0 {
-		t.Errorf("Need 1 record, got %d records", len(r))
+		t.Errorf("Need 1 record, got %d records", len(cr))
 	}
 
 	cNeed := "1, Success Data 1, pwd1"
@@ -157,13 +158,13 @@ func TestUpdate(t *testing.T) {
 	}
 
 	need := 1
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
@@ -171,7 +172,7 @@ func TestUpdate(t *testing.T) {
 	// check whether all data is updated
 	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
 	if len(cr) == 0 {
-		t.Errorf("Need 1 record, got %d records", len(r))
+		t.Errorf("Need 1 record, got %d records", len(cr))
 	}
 
 	cNeed := "1, Success Data 2, pwd2"
@@ -216,13 +217,13 @@ func TestDelete(t *testing.T) {
 	}
 
 	need := 1
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
@@ -230,7 +231,7 @@ func TestDelete(t *testing.T) {
 	// check whether all data is inserted
 	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
 	if len(cr) > 0 {
-		t.Errorf("Need 0 record, got %d records", len(r))
+		t.Errorf("Need 0 record, got %d records", len(cr))
 	}
 }
 
@@ -285,13 +286,13 @@ func TestInsertBulk(t *testing.T) {
 	}
 
 	need := 2
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 2
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
@@ -299,7 +300,7 @@ func TestInsertBulk(t *testing.T) {
 	// check whether all data is inserted
 	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
 	if len(cr) == 0 {
-		t.Errorf("Need 1 record, got %d records", len(r))
+		t.Errorf("Need 1 record, got %d records", len(cr))
 	}
 
 	cNeed := "1, Name 1, pwd1"
@@ -365,13 +366,13 @@ func TestUpdateBulk(t *testing.T) {
 	}
 
 	need := 2
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
@@ -379,7 +380,7 @@ func TestUpdateBulk(t *testing.T) {
 	// check whether all data is updated
 	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
 	if len(cr) != 2 {
-		t.Errorf("Need 2 records, got %d records", len(r))
+		t.Errorf("Need 2 records, got %d records", len(cr))
 	}
 
 	cNeed := "1, Name 1 Updated, pwd1 Updated"
@@ -441,13 +442,13 @@ func TestDeleteBulk(t *testing.T) {
 	}
 
 	need := 2
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
@@ -455,6 +456,6 @@ func TestDeleteBulk(t *testing.T) {
 	// check whether all data is updated
 	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
 	if len(cr) != 0 {
-		t.Errorf("Need 0 records, got %d records", len(r))
+		t.Errorf("Need 0 records, got %d records", len(cr))
 	}
 }

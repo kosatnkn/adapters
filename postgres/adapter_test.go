@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/kosatnkn/db"
+	"github.com/kosatnkn/db/internal"
 	"github.com/kosatnkn/db/postgres"
 )
 
@@ -46,8 +47,17 @@ func clearTestTable(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	adapter.Query(context.Background(), `truncate sample.sample`, nil)
-	adapter.Query(context.Background(), `alter sequence sample_id_seq restart with 1`, nil)
+	r, err := adapter.Query(context.Background(), `truncate sample.sample`, nil)
+	if err != nil {
+		t.Fatalf("Cannot truncate table. Error: %v", err)
+	}
+	t.Log(r)
+
+	r, err = adapter.Query(context.Background(), `alter sequence sample.sample_id_seq restart with 1`, nil)
+	if err != nil {
+		t.Fatalf("Cannot reset sequence. Error: %v", err)
+	}
+	t.Log(r)
 
 	t.Log("Table truncated")
 }
@@ -98,21 +108,21 @@ func TestInsert(t *testing.T) {
 	}
 
 	need := 1
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 1
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
 
 	// check whether all data is inserted
-	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
+	cr, _ := adapter.Query(context.Background(), `select * from sample.sample`, nil)
 	if len(cr) == 0 {
-		t.Errorf("Need 1 record, got %d records", len(r))
+		t.Errorf("Need 1 record, got %d records", len(cr))
 	}
 
 	cNeed := "1, Success Data 1, pwd1"
@@ -131,7 +141,7 @@ func TestUpdate(t *testing.T) {
 	defer adapter.Destruct()
 
 	// insert
-	q := `insert into sample(name, password) values (?name, ?password)`
+	q := `insert into sample.sample(name, password) values (?name, ?password)`
 	params := map[string]interface{}{
 		"name":     "Success Data 1",
 		"password": "pwd1",
@@ -143,7 +153,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	//update
-	q = `update sample set name = ?name, password = ?password where id = ?id`
+	q = `update sample.sample set name = ?name, password = ?password where id = ?id`
 	params = map[string]interface{}{
 		"id":       1,
 		"name":     "Success Data 2",
@@ -158,22 +168,25 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("Need 1 record, got %d records", len(r))
 	}
 
-	need := 1
-	got := int(r[0]["affected_rows"].(int64))
+	var need interface{}
+	var got interface{}
+
+	need = 1
+	got = int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
-	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	need = nil
+	got = r[0][internal.LastInsertID]
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
 
 	// check whether all data is updated
-	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
+	cr, _ := adapter.Query(context.Background(), `select * from sample.sample`, nil)
 	if len(cr) == 0 {
-		t.Errorf("Need 1 record, got %d records", len(r))
+		t.Errorf("Need 1 record, got %d records", len(cr))
 	}
 
 	cNeed := "1, Success Data 2, pwd2"
@@ -192,7 +205,7 @@ func TestDelete(t *testing.T) {
 	defer adapter.Destruct()
 
 	// insert
-	q := `insert into sample(name, password) values (?name, ?password)`
+	q := `insert into sample.sample(name, password) values (?name, ?password)`
 	params := map[string]interface{}{
 		"name":     "Success Data 1",
 		"password": "pwd1",
@@ -204,7 +217,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	// delete
-	q = `delete from sample where id = ?id`
+	q = `delete from sample.sample where id = ?id`
 	params = map[string]interface{}{
 		"id": 1,
 	}
@@ -217,22 +230,25 @@ func TestDelete(t *testing.T) {
 		t.Errorf("Need 1 record, got %d records", len(r))
 	}
 
-	need := 1
-	got := int(r[0]["affected_rows"].(int64))
+	var need interface{}
+	var got interface{}
+
+	need = 1
+	got = int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
-	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	need = nil
+	got = r[0][internal.LastInsertID]
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
 
 	// check whether all data is inserted
-	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
+	cr, _ := adapter.Query(context.Background(), `select * from sample.sample`, nil)
 	if len(cr) > 0 {
-		t.Errorf("Need 0 record, got %d records", len(r))
+		t.Errorf("Need 0 record, got %d records", len(cr))
 	}
 }
 
@@ -244,14 +260,14 @@ func TestSelectBulk(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	q := "select * from sample"
+	q := "select * from sample.sample"
 
 	_, err := adapter.QueryBulk(context.Background(), q, nil)
 	if err == nil {
 		t.Errorf("Need error, got nil")
 	}
 
-	need := "Select queries are not allowed. Use Query() instead"
+	need := "postgres-adapter: select queries are not allowed. use Query() instead"
 	got := err.Error()
 	if got != need {
 		t.Errorf("Need %s, got %s", need, got)
@@ -266,7 +282,7 @@ func TestInsertBulk(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	q := `insert into sample(name, password) values (?name, ?password)`
+	q := `insert into sample.sample(name, password) values (?name, ?password) returning id`
 
 	params := make([]map[string]interface{}, 0)
 	params = append(params, map[string]interface{}{
@@ -287,21 +303,21 @@ func TestInsertBulk(t *testing.T) {
 	}
 
 	need := 2
-	got := int(r[0]["affected_rows"].(int64))
+	got := int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
 	need = 2
-	got = int(r[0]["last_insert_id"].(int64))
+	got = int(r[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
 
 	// check whether all data is inserted
-	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
+	cr, _ := adapter.Query(context.Background(), `select * from sample.sample`, nil)
 	if len(cr) == 0 {
-		t.Errorf("Need 1 record, got %d records", len(r))
+		t.Errorf("Need 1 record, got %d records", len(cr))
 	}
 
 	cNeed := "1, Name 1, pwd1"
@@ -326,7 +342,7 @@ func TestUpdateBulk(t *testing.T) {
 	defer adapter.Destruct()
 
 	// insert
-	q := `insert into sample(name, password) values (?name, ?password)`
+	q := `insert into sample.sample(name, password) values (?name, ?password) returning id`
 
 	ips := make([]map[string]interface{}, 0)
 	ips = append(ips, map[string]interface{}{
@@ -344,7 +360,7 @@ func TestUpdateBulk(t *testing.T) {
 	}
 
 	// update
-	q = `update sample set name = ?name, password = ?password where id = ?id`
+	q = `update sample.sample set name = ?name, password = ?password where id = ?id`
 
 	ups := make([]map[string]interface{}, 0)
 	ups = append(ups, map[string]interface{}{
@@ -366,22 +382,25 @@ func TestUpdateBulk(t *testing.T) {
 		t.Errorf("Need 1 record, got %d records", len(r))
 	}
 
-	need := 2
-	got := int(r[0]["affected_rows"].(int64))
+	var need interface{}
+	var got interface{}
+
+	need = 2
+	got = int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
-	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	need = nil
+	got = r[0][internal.LastInsertID]
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
 
 	// check whether all data is updated
-	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
+	cr, _ := adapter.Query(context.Background(), `select * from sample.sample`, nil)
 	if len(cr) != 2 {
-		t.Errorf("Need 2 records, got %d records", len(r))
+		t.Errorf("Need 2 records, got %d records", len(cr))
 	}
 
 	cNeed := "1, Name 1 Updated, pwd1 Updated"
@@ -406,7 +425,7 @@ func TestDeleteBulk(t *testing.T) {
 	defer adapter.Destruct()
 
 	// insert
-	q := `insert into sample(name, password) values (?name, ?password)`
+	q := `insert into sample.sample(name, password) values (?name, ?password) returning id`
 
 	ips := make([]map[string]interface{}, 0)
 	ips = append(ips, map[string]interface{}{
@@ -424,7 +443,7 @@ func TestDeleteBulk(t *testing.T) {
 	}
 
 	// delete
-	q = `delete from sample where id = ?id`
+	q = `delete from sample.sample where id = ?id`
 
 	dps := make([]map[string]interface{}, 0)
 	dps = append(dps, map[string]interface{}{
@@ -442,21 +461,24 @@ func TestDeleteBulk(t *testing.T) {
 		t.Errorf("Need 1 record, got %d records", len(r))
 	}
 
-	need := 2
-	got := int(r[0]["affected_rows"].(int64))
+	var need interface{}
+	var got interface{}
+
+	need = 2
+	got = int(r[0][internal.AffectedRows].(int64))
 	if got != need {
 		t.Errorf("Affected rows: need `%d`, got `%d`", need, got)
 	}
 
-	need = 0
-	got = int(r[0]["last_insert_id"].(int64))
+	need = nil
+	got = r[0][internal.LastInsertID]
 	if got != need {
 		t.Errorf("Last insert id: need `%d`, got `%d`", need, got)
 	}
 
 	// check whether all data is updated
-	cr, _ := adapter.Query(context.Background(), `select * from sample`, nil)
+	cr, _ := adapter.Query(context.Background(), `select * from sample.sample`, nil)
 	if len(cr) != 0 {
-		t.Errorf("Need 0 records, got %d records", len(r))
+		t.Errorf("Need 0 records, got %d records", len(cr))
 	}
 }
