@@ -1,4 +1,4 @@
-package mysql_test
+package postgres_test
 
 import (
 	"context"
@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/kosatnkn/db"
-	"github.com/kosatnkn/db/mysql"
+	"github.com/kosatnkn/db/postgres"
 )
 
-// NOTE: you will have to create a db named sample and add the following table to it.
+// NOTE: you will have to create a db named sample and in that a schema named sample and add the following table to it.
 //
 // | sample 					|
 // | -------------------------- |
@@ -22,17 +22,17 @@ import (
 // newDBAdapter creates a new db adapter pointing to the test db.
 func newDBAdapter(t *testing.T) db.AdapterInterface {
 
-	cfg := mysql.Config{
-		Host:     "127.0.0.1",
-		Port:     3306,
+	cfg := postgres.Config{
+		Host:     "localhost",
+		Port:     5432,
 		Database: "sample",
-		User:     "root",
-		Password: "root",
+		User:     "postgres",
+		Password: "admin",
 		PoolSize: 10,
 		Check:    true,
 	}
 
-	a, err := mysql.NewAdapter(cfg)
+	a, err := postgres.NewAdapter(cfg)
 	if err != nil {
 		t.Fatalf("Cannot create adapter. Error: %v", err)
 	}
@@ -46,7 +46,8 @@ func clearTestTable(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	adapter.Query(context.Background(), `truncate sample`, nil)
+	adapter.Query(context.Background(), `truncate sample.sample`, nil)
+	adapter.Query(context.Background(), `alter sequence sample_id_seq restart with 1`, nil)
 
 	t.Log("Table truncated")
 }
@@ -59,7 +60,7 @@ func TestSelect(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	q := "select * from sample"
+	q := "select * from sample.sample"
 
 	r, err := adapter.Query(context.Background(), q, nil)
 	if err != nil {
@@ -68,6 +69,7 @@ func TestSelect(t *testing.T) {
 
 	need := reflect.TypeOf(make([]map[string]interface{}, 0))
 	got := reflect.TypeOf(r)
+
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -81,7 +83,7 @@ func TestInsert(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	q := `insert into sample(name, password) values (?name, ?password)`
+	q := `insert into sample.sample(name, password) values (?name, ?password) returning id`
 	params := map[string]interface{}{
 		"name":     "Success Data 1",
 		"password": "pwd1",

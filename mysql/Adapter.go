@@ -73,8 +73,7 @@ func (a *Adapter) Query(ctx context.Context, query string, params map[string]int
 	defer stmt.Close()
 
 	// check whether the query is a select statement
-	if strings.ToLower(convertedQuery[:1]) == "s" {
-
+	if a.isSelect(convertedQuery) {
 		rows, err := stmt.Query(reorderedParams...)
 		if err != nil {
 			return nil, err
@@ -100,7 +99,7 @@ func (a *Adapter) QueryBulk(ctx context.Context, query string, params []map[stri
 	convertedQuery, placeholders := a.convertQuery(query)
 
 	// check whether the query is a select statement
-	if strings.ToLower(convertedQuery[:6]) == "select" {
+	if a.isSelect(convertedQuery) {
 		return nil, fmt.Errorf("mysql-adapter: select queries are not allowed. use Query() instead")
 	}
 
@@ -114,7 +113,6 @@ func (a *Adapter) QueryBulk(ctx context.Context, query string, params []map[stri
 	var affRows int64
 
 	for _, pms := range params {
-
 		reorderedParams, err := a.reorderParameters(pms, placeholders)
 		if err != nil {
 			return nil, err
@@ -153,6 +151,7 @@ func (a *Adapter) WrapInTx(ctx context.Context, fn func(ctx context.Context) (in
 	// Here we deliberately avoid catching errors from Commit() and Rollback().
 	// This is because the sql package does not give a method to check whether
 	// a transaction has already completed or not.
+	//
 	// When executing nested operations in a single transaction, either the leaf operation or the
 	// earliest failing operation of the operation tree will close the transaction.
 	// Since all operations prior to that operation also tries to close the transaction
@@ -171,8 +170,12 @@ func (a *Adapter) WrapInTx(ctx context.Context, fn func(ctx context.Context) (in
 
 // Destruct will close the MySQL adapter releasing all resources.
 func (a *Adapter) Destruct() error {
-
 	return a.pool.Close()
+}
+
+// isSelect checks whether q is a select query.
+func (a *Adapter) isSelect(q string) bool {
+	return strings.ToLower(q[:6]) == "select"
 }
 
 // attachTx attaches a database transaction to the context.
@@ -232,11 +235,10 @@ func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams [
 	var reorderedParams []interface{}
 
 	for _, param := range namedParams {
-
 		// return an error if a named parameter is missing from params
-		paramValue, isParamExist := params[param]
+		paramValue, ok := params[param]
 
-		if !isParamExist {
+		if !ok {
 			return nil, fmt.Errorf("mysql-adapter: parameter '%s' is missing", param)
 		}
 
@@ -321,10 +323,9 @@ func (a *Adapter) prepareResultSet(result sql.Result) ([]map[string]interface{},
 func (a *Adapter) formatResultSet(id, aff int64) []map[string]interface{} {
 
 	data := make([]map[string]interface{}, 0)
-	row := make(map[string]interface{})
 
-	row["affected_rows"] = aff
-	row["last_insert_id"] = id
-
-	return append(data, row)
+	return append(data, map[string]interface{}{
+		internal.AffectedRows: aff,
+		internal.LastInsertID: id,
+	})
 }
