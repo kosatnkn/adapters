@@ -250,7 +250,7 @@ func TestSelectBulk(t *testing.T) {
 		t.Errorf("Need error, got nil")
 	}
 
-	need := "Select queries are not allowed. Use Query() instead"
+	need := "mysql-adapter: select queries are not allowed. use Query() instead"
 	got := err.Error()
 	if got != need {
 		t.Errorf("Need %s, got %s", need, got)

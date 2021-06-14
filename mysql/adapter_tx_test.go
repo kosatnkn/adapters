@@ -3,6 +3,8 @@ package mysql_test
 import (
 	"context"
 	"testing"
+
+	"github.com/kosatnkn/db/internal"
 )
 
 // TestSingleTxSuccess tests for successfull operation of executing multiple queries
@@ -47,7 +49,7 @@ func TestSingleTxSuccess(t *testing.T) {
 	}
 
 	need := 3
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -63,7 +65,7 @@ func TestSingleTxFail(t *testing.T) {
 	defer adapter.Destruct()
 
 	q1 := `insert into sample(name, password) values ('Success Query 1', 'pwd1')`
-	q2 := `insert into non_existant_table(name, password) values ('Data to non existant table', 'pwd')` // faoling query
+	q2 := `insert into non_existant_table(name, password) values ('Data to non existant table', 'pwd')` // failing query
 	q3 := `insert into sample(name, password) values ('Success Query 3', 'pwd3')`
 
 	_, err := adapter.WrapInTx(context.Background(), func(ctx context.Context) (interface{}, error) {
@@ -129,7 +131,7 @@ func TestMultipleTxSuccess(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -154,7 +156,7 @@ func TestMultipleTxSuccess(t *testing.T) {
 	}
 
 	need = 2
-	got = int(result[0]["last_insert_id"].(int64))
+	got = int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -200,7 +202,7 @@ func TestMultipleTxFail(t *testing.T) {
 		t.Errorf("Need error, got nil")
 	}
 
-	errNeed := `Error 1064`
+	errNeed := "Error 1064"
 	errGot := err.Error()[:10]
 	if errNeed != errGot {
 		t.Errorf("Need %s, got %s", errNeed, errGot)
@@ -226,7 +228,7 @@ func TestMultipleTxFail(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -286,7 +288,7 @@ func TestNestedTxSuccess(t *testing.T) {
 		}
 
 		need2 := 2
-		got2 := int(result2[0]["last_insert_id"].(int64))
+		got2 := int(result2[0][internal.LastInsertID].(int64))
 		if got2 != need2 {
 			t.Errorf("Need %d, got %d", need2, got2)
 		}
@@ -304,7 +306,7 @@ func TestNestedTxSuccess(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -362,7 +364,7 @@ func TestNestedTxInnerFail(t *testing.T) {
 			t.Errorf("Need error, got nil")
 		}
 
-		errNeed := `Error 1064`
+		errNeed := "Error 1064"
 		errGot := err2.Error()[:10]
 		if errNeed != errGot {
 			t.Errorf("Need %s, got %s", errNeed, errGot)
@@ -381,7 +383,7 @@ func TestNestedTxInnerFail(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -445,7 +447,7 @@ func TestNestedTxOuterFail(t *testing.T) {
 		}
 
 		need2 := 2
-		got2 := int(result2[0]["last_insert_id"].(int64))
+		got2 := int(result2[0][internal.LastInsertID].(int64))
 		if got2 != need2 {
 			t.Errorf("Need %d, got %d", need2, got2)
 		}

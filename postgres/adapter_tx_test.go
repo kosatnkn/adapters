@@ -3,6 +3,8 @@ package postgres_test
 import (
 	"context"
 	"testing"
+
+	"github.com/kosatnkn/db/internal"
 )
 
 // TestSingleTxSuccess tests for successfull operation of executing multiple queries
@@ -14,9 +16,9 @@ func TestSingleTxSuccess(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
-	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
-	q3 := `insert into sample(name, password) values ('Success Data 3', 'pwd3')`
+	q1 := `insert into sample.sample(name, password) values ('Success Data 1', 'pwd1') returning id`
+	q2 := `insert into sample.sample(name, password) values ('Success Data 2', 'pwd2') returning id`
+	q3 := `insert into sample.sample(name, password) values ('Success Data 3', 'pwd3') returning id`
 
 	r, err := adapter.WrapInTx(context.Background(), func(ctx context.Context) (interface{}, error) {
 
@@ -47,7 +49,7 @@ func TestSingleTxSuccess(t *testing.T) {
 	}
 
 	need := 3
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -62,9 +64,9 @@ func TestSingleTxFail(t *testing.T) {
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
-	q1 := `insert into sample(name, password) values ('Success Query 1', 'pwd1')`
-	q2 := `insert into non_existant_table(name, password) values ('Data to non existant table', 'pwd')` // faoling query
-	q3 := `insert into sample(name, password) values ('Success Query 3', 'pwd3')`
+	q1 := `insert into sample.sample(name, password) values ('Success Query 1', 'pwd1') returning id`
+	q2 := `insert into non_existant_table(name, password) values ('Data to non existant table', 'pwd')` // failing query
+	q3 := `insert into sample.sample(name, password) values ('Success Query 3', 'pwd3') returning id`
 
 	_, err := adapter.WrapInTx(context.Background(), func(ctx context.Context) (interface{}, error) {
 
@@ -89,7 +91,7 @@ func TestSingleTxFail(t *testing.T) {
 		t.Errorf("Need error, got nil")
 	}
 
-	need := `Error 1146: Table 'sample.non_existant_table' doesn't exist`
+	need := `pq: relation "non_existant_table" does not exist`
 	got := err.Error()
 	if need != got {
 		t.Errorf("Need %s, got %s", need, got)
@@ -106,8 +108,8 @@ func TestMultipleTxSuccess(t *testing.T) {
 
 	ctx := context.Background()
 
-	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
-	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
+	q1 := `insert into sample.sample(name, password) values ('Success Data 1', 'pwd1') returning id`
+	q2 := `insert into sample.sample(name, password) values ('Success Data 2', 'pwd2') returning id`
 
 	// run q1
 	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
@@ -129,7 +131,7 @@ func TestMultipleTxSuccess(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
@@ -154,13 +156,13 @@ func TestMultipleTxSuccess(t *testing.T) {
 	}
 
 	need = 2
-	got = int(result[0]["last_insert_id"].(int64))
+	got = int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
 
 	// check whether all data is inserted
-	r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	r, err = adapter.Query(context.Background(), `select count(*) as count from sample.sample`, nil)
 	result, ok = r.([]map[string]interface{})
 	if !ok {
 		t.Fatal("Result type mismatch")
@@ -183,8 +185,8 @@ func TestMultipleTxFail(t *testing.T) {
 
 	ctx := context.Background()
 
-	q1 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
-	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
+	q1 := `insert into sample.sample(name, password) values (no quotes around this string, 'pwd')` // failing query
+	q2 := `insert into sample.sample(name, password) values ('Success Data 2', 'pwd2') returning id`
 
 	// run q1 (failing query)
 	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
@@ -200,8 +202,8 @@ func TestMultipleTxFail(t *testing.T) {
 		t.Errorf("Need error, got nil")
 	}
 
-	errNeed := `Error 1064`
-	errGot := err.Error()[:10]
+	errNeed := "pq: syntax error"
+	errGot := err.Error()[:16]
 	if errNeed != errGot {
 		t.Errorf("Need %s, got %s", errNeed, errGot)
 	}
@@ -226,13 +228,13 @@ func TestMultipleTxFail(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
 
 	// check whether all data is inserted
-	r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	r, err = adapter.Query(context.Background(), `select count(*) as count from sample.sample`, nil)
 	result, ok = r.([]map[string]interface{})
 	if !ok {
 		t.Fatal("Result type mismatch")
@@ -255,8 +257,8 @@ func TestNestedTxSuccess(t *testing.T) {
 
 	ctx := context.Background()
 
-	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
-	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
+	q1 := `insert into sample.sample(name, password) values ('Success Data 1', 'pwd1') returning id`
+	q2 := `insert into sample.sample(name, password) values ('Success Data 2', 'pwd2') returning id`
 
 	// run q1
 	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
@@ -286,7 +288,7 @@ func TestNestedTxSuccess(t *testing.T) {
 		}
 
 		need2 := 2
-		got2 := int(result2[0]["last_insert_id"].(int64))
+		got2 := int(result2[0][internal.LastInsertID].(int64))
 		if got2 != need2 {
 			t.Errorf("Need %d, got %d", need2, got2)
 		}
@@ -304,13 +306,13 @@ func TestNestedTxSuccess(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
 
 	// check whether all data is inserted
-	r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	r, err = adapter.Query(context.Background(), `select count(*) as count from sample.sample`, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -337,8 +339,8 @@ func TestNestedTxInnerFail(t *testing.T) {
 
 	ctx := context.Background()
 
-	q1 := `insert into sample(name, password) values ('Success Data 1', 'pwd1')`
-	q2 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
+	q1 := `insert into sample.sample(name, password) values ('Success Data 1', 'pwd1') returning id`
+	q2 := `insert into sample.sample(name, password) values (no quotes around this string, 'pwd')` // failing query
 
 	// run q1
 	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
@@ -348,7 +350,7 @@ func TestNestedTxInnerFail(t *testing.T) {
 			return nil, err1
 		}
 
-		// run q2
+		// run q2 (failing query)
 		_, err2 := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 			r2, err2 := adapter.Query(ctx, q2, nil)
@@ -362,8 +364,8 @@ func TestNestedTxInnerFail(t *testing.T) {
 			t.Errorf("Need error, got nil")
 		}
 
-		errNeed := `Error 1064`
-		errGot := err2.Error()[:10]
+		errNeed := "pq: syntax error"
+		errGot := err2.Error()[:16]
 		if errNeed != errGot {
 			t.Errorf("Need %s, got %s", errNeed, errGot)
 		}
@@ -381,13 +383,13 @@ func TestNestedTxInnerFail(t *testing.T) {
 	}
 
 	need := 1
-	got := int(result[0]["last_insert_id"].(int64))
+	got := int(result[0][internal.LastInsertID].(int64))
 	if got != need {
 		t.Errorf("Need %d, got %d", need, got)
 	}
 
 	// check whether all data is inserted
-	r, err = adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	r, err = adapter.Query(context.Background(), `select count(*) as count from sample.sample`, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -414,10 +416,10 @@ func TestNestedTxOuterFail(t *testing.T) {
 
 	ctx := context.Background()
 
-	q1 := `insert into sample(name, password) values (no quotes around this string, 'pwd')` // failing query
-	q2 := `insert into sample(name, password) values ('Success Data 2', 'pwd2')`
+	q1 := `insert into sample.sample(name, password) values (no quotes around this string, 'pwd')` // failing query
+	q2 := `insert into sample.sample(name, password) values ('Success Data 2', 'pwd2') returning id`
 
-	// run q1
+	// run q1 (failing query)
 	_, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
 
 		r1, err1 := adapter.Query(ctx, q1, nil)
@@ -445,7 +447,7 @@ func TestNestedTxOuterFail(t *testing.T) {
 		}
 
 		need2 := 2
-		got2 := int(result2[0]["last_insert_id"].(int64))
+		got2 := int(result2[0][internal.LastInsertID].(int64))
 		if got2 != need2 {
 			t.Errorf("Need %d, got %d", need2, got2)
 		}
@@ -457,14 +459,14 @@ func TestNestedTxOuterFail(t *testing.T) {
 		t.Errorf("Need error, got nil")
 	}
 
-	errNeed := "Error 1064"
-	errGot := err.Error()[:10]
+	errNeed := "pq: syntax error"
+	errGot := err.Error()[:16]
 	if errNeed != errGot {
 		t.Errorf("Need %s, got %s", errNeed, errGot)
 	}
 
 	// check whether all data is inserted
-	r, err := adapter.Query(context.Background(), `select count(*) as count from sample`, nil)
+	r, err := adapter.Query(context.Background(), `select count(*) as count from sample.sample`, nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
