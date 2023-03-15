@@ -10,7 +10,6 @@ import (
 // TestSingleTxSuccess tests for successfull operation of executing multiple queries
 // using the same transaction.
 func TestSingleTxSuccess(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -58,7 +57,6 @@ func TestSingleTxSuccess(t *testing.T) {
 // TestSingleTxFail tests for rolling back of the transaction when one query of the
 // list fails.
 func TestSingleTxFail(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -100,7 +98,6 @@ func TestSingleTxFail(t *testing.T) {
 
 // TestMultipleTxSuccess tests for successfull execution of multiple transactions.
 func TestMultipleTxSuccess(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -177,7 +174,6 @@ func TestMultipleTxSuccess(t *testing.T) {
 
 // TestMultipleTxFail tests for multiple transactions in which one of them fails.
 func TestMultipleTxFail(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -190,7 +186,6 @@ func TestMultipleTxFail(t *testing.T) {
 
 	// run q1 (failing query)
 	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 		r, err := adapter.Query(ctx, q1, nil)
 		if err != nil {
 			return nil, err
@@ -210,7 +205,6 @@ func TestMultipleTxFail(t *testing.T) {
 
 	// run q2
 	r, err = adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 		r, err = adapter.Query(ctx, q2, nil)
 		if err != nil {
 			return nil, err
@@ -249,7 +243,6 @@ func TestMultipleTxFail(t *testing.T) {
 
 // TestNestedTxSuccess tests for successful execution of nested transactions.
 func TestNestedTxSuccess(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -262,7 +255,6 @@ func TestNestedTxSuccess(t *testing.T) {
 
 	// run q1
 	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 		r1, err1 := adapter.Query(ctx, q1, nil)
 		if err1 != nil {
 			return nil, err1
@@ -270,7 +262,6 @@ func TestNestedTxSuccess(t *testing.T) {
 
 		// run q2
 		r2, err2 := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 			r2, err2 := adapter.Query(ctx, q2, nil)
 			if err2 != nil {
 				return nil, err2
@@ -331,7 +322,6 @@ func TestNestedTxSuccess(t *testing.T) {
 
 // TestNestedTxInnerFail tests for the failure of inner operation of the nested transactions.
 func TestNestedTxInnerFail(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -344,7 +334,6 @@ func TestNestedTxInnerFail(t *testing.T) {
 
 	// run q1
 	r, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 		r1, err1 := adapter.Query(ctx, q1, nil)
 		if err1 != nil {
 			return nil, err1
@@ -352,7 +341,6 @@ func TestNestedTxInnerFail(t *testing.T) {
 
 		// run q2
 		_, err2 := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 			r2, err2 := adapter.Query(ctx, q2, nil)
 			if err2 != nil {
 				return nil, err2
@@ -408,7 +396,6 @@ func TestNestedTxInnerFail(t *testing.T) {
 
 // TestNestedTxOuterFail tests for the failure of outer operation of the nested transactions.
 func TestNestedTxOuterFail(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -421,7 +408,6 @@ func TestNestedTxOuterFail(t *testing.T) {
 
 	// run q1
 	_, err := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 		r1, err1 := adapter.Query(ctx, q1, nil)
 		if err1 != nil {
 			return r1, err1
@@ -429,7 +415,6 @@ func TestNestedTxOuterFail(t *testing.T) {
 
 		// run q2
 		r2, err2 := adapter.WrapInTx(ctx, func(ctx context.Context) (interface{}, error) {
-
 			r2, err2 := adapter.Query(ctx, q2, nil)
 			if err2 != nil {
 				return r2, err2

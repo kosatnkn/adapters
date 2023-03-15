@@ -6,7 +6,6 @@ import (
 
 // AdapterInterface is implemented by all database adapters.
 type AdapterInterface interface {
-
 	// Ping checks wether the database is accessible.
 	Ping() error
 

@@ -13,16 +13,15 @@ import (
 
 // NOTE: you will have to create a db named sample and in that a schema named sample and add the following table to it.
 //
-// | sample 					|
+// | sample 					          |
 // | -------------------------- |
-// | id (int, autoincrement)	|
-// | name (varchar)				|
-// | password (varchar) 		|
+// | id (int, autoincrement)	  |
+// | name (varchar)				      |
+// | password (varchar) 		    |
 //
 
 // newDBAdapter creates a new db adapter pointing to the test db.
 func newDBAdapter(t *testing.T) db.AdapterInterface {
-
 	cfg := postgres.Config{
 		Host:     "localhost",
 		Port:     5432,
@@ -43,7 +42,6 @@ func newDBAdapter(t *testing.T) db.AdapterInterface {
 
 // clearTestTable clears all data from the test table.
 func clearTestTable(t *testing.T) {
-
 	adapter := newDBAdapter(t)
 	defer adapter.Destruct()
 
@@ -64,7 +62,6 @@ func clearTestTable(t *testing.T) {
 
 // TestSelect tests select query.
 func TestSelect(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -87,7 +84,6 @@ func TestSelect(t *testing.T) {
 
 // TestInsert tests insert query.
 func TestInsert(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -134,7 +130,6 @@ func TestInsert(t *testing.T) {
 
 // TestUpdate tests update query.
 func TestUpdate(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -198,7 +193,6 @@ func TestUpdate(t *testing.T) {
 
 // TestDelete tests delete query.
 func TestDelete(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -254,7 +248,6 @@ func TestDelete(t *testing.T) {
 
 // TestSelectBulk tests bulk select query.
 func TestSelectBulk(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -276,7 +269,6 @@ func TestSelectBulk(t *testing.T) {
 
 // TestInsertBulk tests bulk insert query.
 func TestInsertBulk(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -335,7 +327,6 @@ func TestInsertBulk(t *testing.T) {
 
 // TestUpdateBulk tests bulk update query.
 func TestUpdateBulk(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)
@@ -418,7 +409,6 @@ func TestUpdateBulk(t *testing.T) {
 
 // TestDeleteBulk tests bulk delete query.
 func TestDeleteBulk(t *testing.T) {
-
 	clearTestTable(t)
 
 	adapter := newDBAdapter(t)

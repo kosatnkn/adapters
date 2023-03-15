@@ -23,7 +23,6 @@ type Adapter struct {
 
 // NewAdapter creates a new Postgres adapter instance.
 func NewAdapter(cfg Config) (db.AdapterInterface, error) {
-
 	connString := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=disable",
 		cfg.User, cfg.Password, cfg.Database, cfg.Host, cfg.Port)
 
@@ -61,7 +60,6 @@ func (a *Adapter) Ping() error {
 // Note: For INSERT statements postgres does not return the insert id by default.
 // The returning identifier should be defined in the query using the RETURNING clause.
 func (a *Adapter) Query(ctx context.Context, query string, params map[string]interface{}) ([]map[string]interface{}, error) {
-
 	convertedQuery, placeholders := a.convertQuery(query)
 
 	reorderedParams, err := a.reorderParameters(params, placeholders)
@@ -105,7 +103,6 @@ func (a *Adapter) Query(ctx context.Context, query string, params map[string]int
 // This query is intended to do bulk INSERTS, UPDATES and DELETES.
 // Using this for SELECTS will result in an error.
 func (a *Adapter) QueryBulk(ctx context.Context, query string, params []map[string]interface{}) ([]map[string]interface{}, error) {
-
 	convertedQuery, placeholders := a.convertQuery(query)
 
 	// check whether the query is a select statement
@@ -161,7 +158,6 @@ func (a *Adapter) QueryBulk(ctx context.Context, query string, params []map[stri
 
 // WrapInTx runs the content of the function in a single transaction.
 func (a *Adapter) WrapInTx(ctx context.Context, fn func(ctx context.Context) (interface{}, error)) (interface{}, error) {
-
 	// attach a transaction to context
 	ctx, err := a.attachTx(ctx)
 	if err != nil {
@@ -219,7 +215,6 @@ func (a *Adapter) isInsert(q string) bool {
 // When this is the case use the existing attached transaction.
 // Otherwise create a new transaction and attach.
 func (a *Adapter) attachTx(ctx context.Context) (context.Context, error) {
-
 	// check tx altready exists
 	tx := ctx.Value(internal.TxKey)
 	if tx != nil {
@@ -247,7 +242,6 @@ func (a *Adapter) attachTx(ctx context.Context) (context.Context, error) {
 // This will return the query and a slice of strings containing named parameter name in the order that they are found
 // in the query.
 func (a *Adapter) convertQuery(query string) (string, []string) {
-
 	query = strings.TrimSpace(query)
 	exp := regexp.MustCompile(`\` + a.pqPrefix + `\w+`)
 
@@ -259,7 +253,6 @@ func (a *Adapter) convertQuery(query string) (string, []string) {
 
 	paramPosition := 0
 	query = string(exp.ReplaceAllFunc([]byte(query), func(param []byte) []byte {
-
 		paramPosition++
 		paramName := fmt.Sprintf("$%d", paramPosition)
 
@@ -271,7 +264,6 @@ func (a *Adapter) convertQuery(query string) (string, []string) {
 
 // reorderParameters reorders the parameters map in the order of named parameters slice.
 func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams []string) ([]interface{}, error) {
-
 	var reorderedParams []interface{}
 
 	for _, param := range namedParams {
@@ -292,7 +284,6 @@ func (a *Adapter) reorderParameters(params map[string]interface{}, namedParams [
 // Checks whether there is a transaction attached to the context.
 // If so use that transaction to prepare statement else use the pool.
 func (a *Adapter) prepareStatement(ctx context.Context, query string) (*sql.Stmt, error) {
-
 	tx := ctx.Value(internal.TxKey)
 	if tx != nil {
 		return tx.(*sql.Tx).Prepare(query)
@@ -305,7 +296,6 @@ func (a *Adapter) prepareStatement(ctx context.Context, query string) (*sql.Stmt
 //
 // Source: https://kylewbanks.com/blog/query-result-to-map-in-golang
 func (a *Adapter) prepareDataSet(rows *sql.Rows) ([]map[string]interface{}, error) {
-
 	defer rows.Close()
 
 	var data []map[string]interface{}
@@ -344,7 +334,6 @@ func (a *Adapter) prepareDataSet(rows *sql.Rows) ([]map[string]interface{}, erro
 
 // prepareInsertResultSet creates a resultset using the result of QueryRow().
 func (a *Adapter) prepareInsertResultSet(row *sql.Row) ([]map[string]interface{}, error) {
-
 	if err := row.Err(); err != nil {
 		return nil, err
 	}
@@ -361,7 +350,6 @@ func (a *Adapter) prepareInsertResultSet(row *sql.Row) ([]map[string]interface{}
 //
 // Note: result.LastInsertId() is not supported by Postgres. So this cannot be used with INSERT statements.
 func (a *Adapter) prepareResultSet(result sql.Result) ([]map[string]interface{}, error) {
-
 	aff, err := result.RowsAffected()
 	if err != nil {
 		return nil, err
@@ -372,7 +360,6 @@ func (a *Adapter) prepareResultSet(result sql.Result) ([]map[string]interface{},
 
 // formatResultSet creates a resultset using last insert id and affected rows.
 func (a *Adapter) formatResultSet(id interface{}, aff int64) []map[string]interface{} {
-
 	data := make([]map[string]interface{}, 0)
 
 	return append(data, map[string]interface{}{
